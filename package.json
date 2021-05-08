@@ -22,7 +22,7 @@
     "prettier-bytes": "^1.0.4",
     "pretty-ms": "^5.0.0",
     "pump": "^3.0.0",
-    "random-access-chrome-file": "^1.1.4",
+    "random-access-memory": "^3.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3"
