@@ -1,0 +1,56 @@
+{
+  "name": "dazaar-meeting",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@dazaar/payment-lightning": "^1.1.0",
+    "@hyperswarm/replicator": "^1.7.1",
+    "@mafintosh/search-component": "^1.0.1",
+    "@testing-library/jest-dom": "^5.12.0",
+    "@testing-library/react": "^11.2.6",
+    "@testing-library/user-event": "^12.8.3",
+    "crypto-payment-url": "^1.0.2",
+    "dazaar": "^1.0.1",
+    "google-auth-library": "^6.0.1",
+    "hui": "^1.2.5",
+    "hypercore": "^9.1.0",
+    "hypercore-crypto": "^2.1.0",
+    "hyperindex": "^1.0.3",
+    "media-recorder-stream": "^2.1.1",
+    "nanoiterator": "^1.2.1",
+    "prettier-bytes": "^1.0.4",
+    "pretty-ms": "^5.0.0",
+    "pump": "^3.0.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3",
+    "streamx": "^2.6.4",
+    "thunky": "^1.1.0",
+    "web-vitals": "^1.1.2",
+    "webm-cluster-stream": "^1.0.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
