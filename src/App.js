@@ -3,14 +3,15 @@ import React, { useEffect } from "react";
 const hypercore = require("hypercore");
 const pump = require("pump");
 const market = require("dazaar");
-const racf = require("random-access-chrome-file");
+var ram = require('random-access-memory')
+
 
 const App = () => {
   useEffect(() => {
     const m = market("tmp");
 
     var feed = hypercore(function (filename) {
-      return racf(filename);
+      return ram(filename);
     });
 
     feed.append("valuable");
