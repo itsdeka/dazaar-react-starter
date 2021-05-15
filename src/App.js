@@ -1,24 +1,54 @@
 import "./App.css";
-import React, { useEffect } from "react";
-const hypercore = require("hypercore");
-const pump = require("pump");
+import React, { useEffect, useState } from "react";
+import * as broadcast from "../src/lib/broadcast.js";
+import Video from "../src/Video";
+var recorder = require("media-recorder-stream");
+var hypercore = require("hypercore");
+var hyperdiscovery = require("hyperdiscovery");
+var cluster = require("webm-cluster-stream");
+var pump = require("pump");
+var ram = require("random-access-memory");
 const market = require("dazaar");
-var ram = require('random-access-memory')
-
+const m = market("./tmp");
 
 const App = () => {
-  useEffect(() => {
-    const m = market("tmp");
+  const broadcast = (quality, media, cb) => {
+    // create bitrate options
+    var video = quality === 3 ? 800000 : quality === 2 ? 500000 : 200000;
+    var audio = quality === 3 ? 128000 : quality === 2 ? 64000 : 32000;
 
+    // create MediaRecorder
+    var opts = {
+      interval: 1000,
+      videoBitsPerSecond: video,
+      audioBitsPerSecond: audio,
+    };
+
+    // create MediaRecorder stream
+    console.log(media);
+    var mediaRecorder = recorder(media, opts);
+    console.log(mediaRecorder);
+    const replay = document.querySelector("#replay");
+    var ms = new MediaSource();
+    replay.src = window.URL.createObjectURL(ms);
+    ms.addEventListener(
+      "sourceopen",
+      () => {
+        let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+        mediaRecorder.on("data", function (data) {
+          source.appendBuffer(new Uint8Array(data));
+        });
+      },
+      false
+    );
+
+    // create a feed
     var feed = hypercore(function (filename) {
       return ram(filename);
     });
 
-    feed.append("valuable");
-
     const seller = m.sell(feed, {
       validate(remoteKey, cb) {
-        console.log("this key wants our hypercore", remoteKey);
         cb(null);
       },
     });
@@ -31,9 +61,9 @@ const App = () => {
 
       buyer.on("feed", function () {
         console.log("got the feed!");
-        buyer.feed.get(0, function (err, data) {
-          if (err) throw err; // Do proper error handling
-          console.log("first feed entry: " + data);
+        console.log(buyer.feed);
+        buyer.feed.on("download", function (index, data) {
+          // add(data);
         });
       });
 
@@ -47,11 +77,40 @@ const App = () => {
         console.log("replication ended", err);
       });
     });
+  };
+
+  const streamCamVideo = () => {
+    var constraints = { audio: true, video: { width: 1280, height: 720 } };
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then(function (mediaStream) {
+        var video = document.querySelector("video");
+        broadcast(3, mediaStream, function (mediaRecorder, hash) {
+          window.recorder = mediaRecorder;
+          console.log(hash);
+        });
+        video.srcObject = mediaStream;
+        video.onloadedmetadata = function (e) {
+          video.play();
+        };
+      })
+      .catch(function (err) {
+        console.log(err.name + ": " + err.message);
+      }); // always check for errors at the end.
+  };
+
+  useEffect(() => {
+    streamCamVideo();
   }, []);
 
   return (
     <div className="App">
-      Check console logs to see more...
+      <video id={"video"} style={{ width: 600, height: 600 }} autoPlay={true} />
+      <video
+        id={"replay"}
+        style={{ width: 600, height: 600 }}
+        autoPlay={true}
+      />
     </div>
   );
 };

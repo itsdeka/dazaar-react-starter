@@ -4,17 +4,19 @@
   "private": true,
   "dependencies": {
     "@dazaar/payment-lightning": "^1.1.0",
-    "@hyperswarm/replicator": "^1.7.1",
+    "@e-e-e/hyperchat": "0.0.4",
+    "@hyperswarm/replicator": "^1.10.0",
     "@mafintosh/search-component": "^1.0.1",
     "@testing-library/jest-dom": "^5.12.0",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
     "crypto-payment-url": "^1.0.2",
     "dazaar": "https://github.com/itsdeka/dazaar",
-    "simple-hypercore-protocol": "https://github.com/itsdeka/simple-hypercore-protocol",
+    "http2": "^3.3.7",
     "hui": "^1.2.5",
     "hypercore": "^9.1.0",
     "hypercore-crypto": "^2.1.0",
+    "hyperdiscovery": "^10.2.1",
     "hyperindex": "^1.0.3",
     "media-recorder-stream": "^2.1.1",
     "nanoiterator": "^1.2.1",
@@ -25,7 +27,9 @@
     "random-access-memory": "^3.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-scripts": "4.0.3"
+    "react-scripts": "4.0.3",
+    "simple-hypercore-protocol": "https://github.com/itsdeka/simple-hypercore-protocol",
+    "webm-cluster-stream": "^1.0.0"
   },
   "scripts": {
     "start": "react-scripts start",
