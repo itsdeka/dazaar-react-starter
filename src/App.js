@@ -20,23 +20,19 @@ const App = () => {
 
     // create MediaRecorder
     var opts = {
-      interval: 1000,
+      interval: 100,
       videoBitsPerSecond: video,
       audioBitsPerSecond: audio,
       mimeType: "video/webm;codecs=vp8,opus",
     };
 
-    var feed = hypercore(function (filename) {
-      return ram(filename);
-    });
-
-    // create MediaRecorder stream
-    console.log(media);
-    var mediaRecorder = recorder(media, opts);
-    mediaRecorder.on("data", function (data) {
-      feed.append(data);
-    });
-    console.log(mediaRecorder.recorder);
+    var feed = hypercore(
+      function (filename) {
+        return ram(filename);
+      },
+      null,
+      { sparse: true }
+    );
 
     const seller = m.sell(feed, {
       validate(remoteKey, cb) {
@@ -62,19 +58,20 @@ const App = () => {
       },
     });
 
+    // create MediaRecorder stream
+    console.log(media);
+    var mediaRecorder = recorder(media, opts);
+    mediaRecorder.on("data", function (data) {
+      feed.append(data);
+      console.log(data);
+    });
+
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
     });
 
-    swarm.join(topic, {
-      lookup: false, // find & connect to peers
-      announce: true, // optional- announce self as a connection target
-    });
-
     seller.ready(function (err) {
       console.log(seller.key.toString("hex"));
-      if (err) throw err; // Do proper error handling
-      console.log("seller key pair fully loaded ...");
     });
   };
 
@@ -99,10 +96,7 @@ const App = () => {
   };
 
   const watch = () => {
-    const buyer = m.buy(
-      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a",
-      { sparse: true }
-    );
+    const buyer = m.buy(window.prompt("hey"), { sparse: true });
 
     const swarm = hyperswarm(buyer, (e) => console.log(e), {
       wsProxy: ["wss://hyperswarm.mauve.moe"],
@@ -122,11 +116,6 @@ const App = () => {
       },
     });
 
-    swarm.join(topic, {
-      lookup: true, // find & connect to peers
-      announce: true, // optional- announce self as a connection target
-    });
-
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
       socket.on("stream", (stream) => {
@@ -138,9 +127,13 @@ const App = () => {
     buyer.on("ready", function () {
       console.log("ready");
     });
-    buyer.on("feed", function () {
-      console.log("got the feed!");
-      console.log(buyer.feed);
+    buyer.on("feed", async function () {
+      let length = 0;
+      let counter = 0;
+      await buyer.feed.update(function () {
+        console.log("length has increased", buyer.feed.length);
+      });
+
       const replay = document.querySelector("#replay");
       var ms = new MediaSource();
       replay.src = window.URL.createObjectURL(ms);
@@ -148,10 +141,14 @@ const App = () => {
         "sourceopen",
         () => {
           let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-          buyer.feed.on("download", function (index, data) {
-            console.log(data);
-            source.appendBuffer(new Uint8Array(data));
-          });
+          console.log("source created");
+
+          setInterval(() => {
+            buyer.feed.get(counter, function (err, data) {
+              source.appendBuffer(new Uint8Array(data));
+              counter += 1;
+            });
+          }, [100]);
         },
         false
       );
@@ -177,4 +174,3 @@ const App = () => {
 };
 
 export default App;
- 
