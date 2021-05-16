@@ -101,7 +101,7 @@ const App = () => {
   const watch = () => {
     const buyer = m.buy(
       "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a",
-        {sparse: true}
+      { sparse: true }
     );
 
     const swarm = hyperswarm(buyer, (e) => console.log(e), {
@@ -129,7 +129,9 @@ const App = () => {
 
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
-      console.log(socket);
+      socket.on("stream", (stream) => {
+        console.log(stream);
+      });
     });
 
     console.log(buyer);
