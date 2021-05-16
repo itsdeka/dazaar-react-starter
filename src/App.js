@@ -10,8 +10,12 @@ var pump = require("pump");
 var ram = require("random-access-memory");
 const market = require("dazaar");
 const m = market("./tmp");
-const hyperswarm = require("hyperswarm-web");
+const hyperswarm = require("dazaar/swarm");
 const crypto = require("crypto");
+const topic = crypto
+  .createHash("sha256")
+  .update("my-hyperswarm-topic")
+  .digest();
 
 const App = () => {
   const broadcast = (quality, media, cb) => {
@@ -27,6 +31,10 @@ const App = () => {
       mimeType: "video/webm;codecs=vp8,opus",
     };
 
+    var feed = hypercore(function (filename) {
+      return ram(filename);
+    });
+
     // create MediaRecorder stream
     console.log(media);
     var mediaRecorder = recorder(media, opts);
@@ -35,52 +43,43 @@ const App = () => {
     });
     console.log(mediaRecorder.recorder);
 
-    // create a feed
-    var feed = hypercore(function (filename) {
-      return ram(filename);
-    });
-
     const seller = m.sell(feed, {
       validate(remoteKey, cb) {
         cb(null);
       },
     });
 
+    const swarm = hyperswarm(seller, (e) => console.log(e), {
+      wsProxy: ["wss://hyperswarm.mauve.moe"],
+      webrtcBootstrap: [
+        "wss://geut-webrtc-signal-v3.herokuapp.com",
+        "wss://signal.dat-web.eu",
+        "wss://geut-webrtc-signal-v3.glitch.me",
+      ],
+      simplePeer: {
+        // The configuration passed to the RTCPeerConnection constructor,for more details see
+        // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#RTCConfiguration_dictionary
+        config: {
+          // List of STUN and TURN setvers to connect
+          // Without the connection is limited to local peers
+          iceServers: require("./ice-servers.json"),
+        },
+      },
+    });
+
+    swarm.on("connection", (socket, info) => {
+      console.log("new connection!", info);
+    });
+
+    swarm.join(topic, {
+      lookup: true, // find & connect to peers
+      announce: true, // optional- announce self as a connection target
+    });
+
     seller.ready(function (err) {
       console.log(seller.key.toString("hex"));
       if (err) throw err; // Do proper error handling
       console.log("seller key pair fully loaded ...");
-
-      const buyer = m.buy(seller.key);
-
-      buyer.on("feed", function () {
-        console.log("got the feed!");
-        console.log(buyer.feed);
-        const replay = document.querySelector("#replay");
-        var ms = new MediaSource();
-        replay.src = window.URL.createObjectURL(ms);
-        ms.addEventListener(
-          "sourceopen",
-          () => {
-            let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-            buyer.feed.on("download", function (index, data) {
-              console.log(data);
-              source.appendBuffer(new Uint8Array(data));
-            });
-          },
-          false
-        );
-      });
-
-      buyer.on("validate", function () {
-        console.log("remote validated us");
-      });
-
-      const stream = seller.replicate();
-
-      pump(stream, buyer.replicate(), stream, function (err) {
-        console.log("replication ended", err);
-      });
     });
   };
 
@@ -105,8 +104,17 @@ const App = () => {
   };
 
   const watch = () => {
-    const swarm = hyperswarm({
-      bootstrap: ["ws://localhost:4977"],
+    const buyer = m.buy(
+      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a"
+    );
+
+    const swarm = hyperswarm(buyer, (e) => console.log(e), {
+      wsProxy: ["wss://hyperswarm.mauve.moe"],
+      webrtcBootstrap: [
+        "wss://geut-webrtc-signal-v3.herokuapp.com",
+        "wss://signal.dat-web.eu",
+        "wss://geut-webrtc-signal-v3.glitch.me",
+      ],
       simplePeer: {
         // The configuration passed to the RTCPeerConnection constructor,for more details see
         // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#RTCConfiguration_dictionary
@@ -118,28 +126,18 @@ const App = () => {
       },
     });
 
-    const topic = crypto.createHash('sha256')
-      .update('my-hyperswarm-topic')
-      .digest()
-
     swarm.join(topic, {
-      announce: true,
-      lookup: true
-    })
-
-    swarm.on("connection", (socket, details) => {
-      console.log("new connection!", details);
-
-      // you can now use the socket as a stream, eg:
-      // socket.pipe(hypercore.replicate()).pipe(socket)
+      lookup: true, // find & connect to peers
+      announce: true, // optional- announce self as a connection target
     });
 
-    const buyer = m.buy(
-      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a"
-    );
+    swarm.on("connection", (socket, info) => {
+      console.log("new connection!", info);
+    });
+
     console.log(buyer);
     buyer.on("ready", function () {
-      console.log("remote validated us");
+      console.log("ready");
     });
     buyer.on("feed", function () {
       console.log("got the feed!");
