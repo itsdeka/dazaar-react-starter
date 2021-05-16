@@ -10,6 +10,8 @@ var pump = require("pump");
 var ram = require("random-access-memory");
 const market = require("dazaar");
 const m = market("./tmp");
+const hyperswarm = require("hyperswarm-web");
+const crypto = require("crypto");
 
 const App = () => {
   const broadcast = (quality, media, cb) => {
@@ -22,25 +24,16 @@ const App = () => {
       interval: 1000,
       videoBitsPerSecond: video,
       audioBitsPerSecond: audio,
+      mimeType: "video/webm;codecs=vp8,opus",
     };
 
     // create MediaRecorder stream
     console.log(media);
     var mediaRecorder = recorder(media, opts);
-    console.log(mediaRecorder);
-    const replay = document.querySelector("#replay");
-    var ms = new MediaSource();
-    replay.src = window.URL.createObjectURL(ms);
-    ms.addEventListener(
-      "sourceopen",
-      () => {
-        let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-        mediaRecorder.on("data", function (data) {
-          source.appendBuffer(new Uint8Array(data));
-        });
-      },
-      false
-    );
+    mediaRecorder.on("data", function (data) {
+      feed.append(data);
+    });
+    console.log(mediaRecorder.recorder);
 
     // create a feed
     var feed = hypercore(function (filename) {
@@ -54,6 +47,7 @@ const App = () => {
     });
 
     seller.ready(function (err) {
+      console.log(seller.key.toString("hex"));
       if (err) throw err; // Do proper error handling
       console.log("seller key pair fully loaded ...");
 
@@ -62,9 +56,20 @@ const App = () => {
       buyer.on("feed", function () {
         console.log("got the feed!");
         console.log(buyer.feed);
-        buyer.feed.on("download", function (index, data) {
-          // add(data);
-        });
+        const replay = document.querySelector("#replay");
+        var ms = new MediaSource();
+        replay.src = window.URL.createObjectURL(ms);
+        ms.addEventListener(
+          "sourceopen",
+          () => {
+            let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+            buyer.feed.on("download", function (index, data) {
+              console.log(data);
+              source.appendBuffer(new Uint8Array(data));
+            });
+          },
+          false
+        );
       });
 
       buyer.on("validate", function () {
@@ -99,12 +104,64 @@ const App = () => {
       }); // always check for errors at the end.
   };
 
-  useEffect(() => {
-    streamCamVideo();
-  }, []);
+  const watch = () => {
+    const topic = crypto.createHash("sha256").update("sefsfsseff").digest();
+    const swarm = hyperswarm({
+      bootstrap: ["wss://hc.virale.io/ws"],
+      simplePeer: {
+        // The configuration passed to the RTCPeerConnection constructor,for more details see
+        // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#RTCConfiguration_dictionary
+        config: {
+          // List of STUN and TURN setvers to connect
+          // Without the connection is limited to local peers
+          iceServers: require("./ice-servers.json"),
+        },
+      },
+    });
+    swarm.join(topic);
+
+    swarm.on("connection", (socket, details) => {
+      console.log("new connection!", details);
+
+      // you can now use the socket as a stream, eg:
+      // socket.pipe(hypercore.replicate()).pipe(socket)
+    });
+
+    const buyer = m.buy(
+      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a"
+    );
+    console.log(buyer);
+    buyer.on("ready", function () {
+      console.log("remote validated us");
+    });
+    buyer.on("feed", function () {
+      console.log("got the feed!");
+      console.log(buyer.feed);
+      const replay = document.querySelector("#replay");
+      var ms = new MediaSource();
+      replay.src = window.URL.createObjectURL(ms);
+      ms.addEventListener(
+        "sourceopen",
+        () => {
+          let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+          buyer.feed.on("download", function (index, data) {
+            console.log(data);
+            source.appendBuffer(new Uint8Array(data));
+          });
+        },
+        false
+      );
+    });
+
+    buyer.on("validate", function () {
+      console.log("remote validated us");
+    });
+  };
 
   return (
     <div className="App">
+      <button onClick={streamCamVideo}>Stream</button>
+      <button onClick={watch}>Watch</button>
       <video id={"video"} style={{ width: 600, height: 600 }} autoPlay={true} />
       <video
         id={"replay"}
