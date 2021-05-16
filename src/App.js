@@ -105,9 +105,8 @@ const App = () => {
   };
 
   const watch = () => {
-    const topic = crypto.createHash("sha256").update("sefsfsseff").digest();
     const swarm = hyperswarm({
-      bootstrap: ["wss://hc.virale.io/ws"],
+      bootstrap: ["ws://localhost:4977"],
       simplePeer: {
         // The configuration passed to the RTCPeerConnection constructor,for more details see
         // https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#RTCConfiguration_dictionary
@@ -118,7 +117,15 @@ const App = () => {
         },
       },
     });
-    swarm.join(topic);
+
+    const topic = crypto.createHash('sha256')
+      .update('my-hyperswarm-topic')
+      .digest()
+
+    swarm.join(topic, {
+      announce: true,
+      lookup: true
+    })
 
     swarm.on("connection", (socket, details) => {
       console.log("new connection!", details);
