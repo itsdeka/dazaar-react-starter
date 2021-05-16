@@ -1,12 +1,7 @@
 import "./App.css";
-import React, { useEffect, useState } from "react";
-import * as broadcast from "../src/lib/broadcast.js";
-import Video from "../src/Video";
+import React from "react";
 var recorder = require("media-recorder-stream");
 var hypercore = require("hypercore");
-var hyperdiscovery = require("hyperdiscovery");
-var cluster = require("webm-cluster-stream");
-var pump = require("pump");
 var ram = require("random-access-memory");
 const market = require("dazaar");
 const m = market("./tmp");
@@ -72,7 +67,7 @@ const App = () => {
     });
 
     swarm.join(topic, {
-      lookup: true, // find & connect to peers
+      lookup: false, // find & connect to peers
       announce: true, // optional- announce self as a connection target
     });
 
@@ -105,7 +100,8 @@ const App = () => {
 
   const watch = () => {
     const buyer = m.buy(
-      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a"
+      "297de7f0943ab8090d874768f43843fbf036abe3b83f6511a8455a4ecb5a982a",
+        {sparse: true}
     );
 
     const swarm = hyperswarm(buyer, (e) => console.log(e), {
@@ -133,6 +129,7 @@ const App = () => {
 
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
+      console.log(socket);
     });
 
     console.log(buyer);
