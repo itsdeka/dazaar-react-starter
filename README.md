@@ -1,2 +1,3 @@
 # dazaar-react-starter
-Live example -> https://dazaar.vercel.app/
+npm install
+npm start
