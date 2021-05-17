@@ -20,7 +20,7 @@ const App = () => {
 
     // create MediaRecorder
     var opts = {
-      interval: 100,
+      interval: 1000,
       videoBitsPerSecond: video,
       audioBitsPerSecond: audio,
       mimeType: "video/webm;codecs=vp8,opus",
@@ -128,10 +128,10 @@ const App = () => {
       console.log("ready");
     });
     buyer.on("feed", async function () {
-      let length = 0;
       let counter = 0;
       await buyer.feed.update(function () {
         console.log("length has increased", buyer.feed.length);
+        // counter = buyer.feed.length - 1
       });
 
       const replay = document.querySelector("#replay");
@@ -145,10 +145,11 @@ const App = () => {
 
           setInterval(() => {
             buyer.feed.get(counter, function (err, data) {
-              source.appendBuffer(new Uint8Array(data));
+              if (!source.updating)
+                source.appendBuffer(new Uint8Array(data));
               counter += 1;
             });
-          }, [100]);
+          }, [1000]);
         },
         false
       );
