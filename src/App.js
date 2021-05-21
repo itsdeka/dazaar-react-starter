@@ -22,7 +22,6 @@ const App = () => {
 
     // create MediaRecorder
     var opts = {
-      interval: 500,
       videoBitsPerSecond: video,
       audioBitsPerSecond: audio,
       mimeType: "video/webm;codecs=vp8,opus",
@@ -67,14 +66,16 @@ const App = () => {
         var arrayBuffer = await event.data.arrayBuffer();
         var uint8View = new Uint8Array(arrayBuffer);
         feed.append(uint8View);
+        console.log(feed.length)
+        console.log(new Date().toISOString());
       }
 
       mediaRecorder.start();
       setTimeout(event => {
         mediaRecorder.stop();
-      }, 500);
+      }, 1000);
 
-    }, [500]);
+    }, [1000]);
 
 
     swarm.on("connection", (socket, info) => {
@@ -139,26 +140,34 @@ const App = () => {
       console.log("ready");
     });
     buyer.on("feed", async function () {
+      await buyer.feed.update(function () {
+        let stream = buyer.feed.createReadStream({
+          snapshot: false,
+          tail: true,
+          live: true,
+          batch: 1,
+          timeout: 0,
+          start: buyer.feed.length
+        });
 
-        setInterval(() => {
-          buyer.feed.update(function () {
-            console.log(new Date());
-            buyer.feed.get(buyer.feed.length, function (err, data) {
-              console.log(data);
-              const replay = document.querySelector("#replay");
-              var ms = new MediaSource();
-              replay.src = window.URL.createObjectURL(ms);
-              ms.addEventListener(
-                  "sourceopen",
-                  async () => {
-                    let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-                    source.appendBuffer(data);
-                  },
-                  false
-              );
-            });
-          })
-        }, [500]);
+        console.log(stream.index);
+
+        stream.on("data", chunk => {
+          console.log(stream);
+          const replay = document.querySelector("#replay");
+          var ms = new MediaSource();
+          replay.src = window.URL.createObjectURL(ms);
+          ms.addEventListener(
+              "sourceopen",
+              async () => {
+                let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+                source.appendBuffer(chunk);
+                console.log(new Date().toISOString());
+              },
+              false
+          );
+        });
+      });
     });
 
     buyer.on("validate", function () {
