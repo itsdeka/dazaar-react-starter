@@ -1,7 +1,6 @@
 import "./App.css";
 import Video from "./Video";
-import React, {useState} from "react";
-var recorder = require("media-recorder-stream");
+import React, {useState, useEffect} from "react";
 var hypercore = require("hypercore");
 var ram = require("random-access-memory");
 const market = require("dazaar");
@@ -13,6 +12,11 @@ const topic = crypto
   .update("my-hyperswarm-topic")
   .digest();
 
+function bufferToHex(buffer) {
+    var s = '', h = '0123456789ABCDEF';
+    (new Uint8Array(buffer)).forEach((v) => { s += h[v >> 4] + h[v & 15]; });
+    return s;
+}
 
 const App = () => {
   const broadcast = (quality, media, cb) => {
@@ -40,6 +44,12 @@ const App = () => {
         cb(null);
       },
     });
+
+    seller.on('ready', () => seller.on('peer-add', onBuyerValid));
+
+    const onBuyerValid = (stream) => {
+      console.log(stream.remotePublicKey);
+    };
 
     const swarm = hyperswarm(seller, (e) => console.log(e), {
       wsProxy: ["wss://hyperswarm.mauve.moe"],
@@ -88,7 +98,7 @@ const App = () => {
   };
 
   const streamCamVideo = () => {
-    var constraints = { audio: true, video: { width: 1280, height: 720 } };
+    var constraints = { audio: true, video: { width: 1920, height: 1080 } };
     navigator.mediaDevices
       .getUserMedia(constraints)
       .then(function (mediaStream) {
@@ -107,8 +117,9 @@ const App = () => {
       }); // always check for errors at the end.
   };
 
-  const watch = () => {
-    const buyer = m.buy(window.prompt("hey"), { sparse: true });
+  const watch = (key) => {
+    if (!key) key = window.prompt('hey');
+    const buyer = m.buy(key, { sparse: true });
 
     const swarm = hyperswarm(buyer, (e) => console.log(e), {
       wsProxy: ["wss://hyperswarm.mauve.moe"],
@@ -177,11 +188,14 @@ const App = () => {
 
   const [url, setUrl] = useState(null);
 
+  useEffect(() => {
+    streamCamVideo();
+  }, []);
+
   return (
     <div className="App">
-      <button onClick={streamCamVideo}>Stream</button>
-      <button onClick={watch}>Watch</button>
-      <video id={"video"} style={{ width: 600, height: 600 }} autoPlay={true} />
+      <button onClick={() => watch(null)}>Watch</button>
+      <video id={"video"} style={{ width: 600, height: 600 }} muted={true} autoPlay={true} />
       <video
         id={"replay"}
         style={{ width: 600, height: 600 }}
