@@ -1,5 +1,6 @@
 import "./App.css";
-import React from "react";
+import Video from "./Video";
+import React, {useState} from "react";
 var recorder = require("media-recorder-stream");
 var hypercore = require("hypercore");
 var ram = require("random-access-memory");
@@ -12,6 +13,7 @@ const topic = crypto
   .update("my-hyperswarm-topic")
   .digest();
 
+
 const App = () => {
   const broadcast = (quality, media, cb) => {
     // create bitrate options
@@ -20,7 +22,7 @@ const App = () => {
 
     // create MediaRecorder
     var opts = {
-      interval: 1000,
+      interval: 500,
       videoBitsPerSecond: video,
       audioBitsPerSecond: audio,
       mimeType: "video/webm;codecs=vp8,opus",
@@ -58,13 +60,22 @@ const App = () => {
       },
     });
 
-    // create MediaRecorder stream
-    console.log(media);
-    var mediaRecorder = recorder(media, opts);
-    mediaRecorder.on("data", function (data) {
-      feed.append(data);
-      console.log(data);
-    });
+    setInterval(() => {
+      let mediaRecorder = new MediaRecorder(media, opts);
+
+      mediaRecorder.ondataavailable = async (event) => {
+        var arrayBuffer = await event.data.arrayBuffer();
+        var uint8View = new Uint8Array(arrayBuffer);
+        feed.append(uint8View);
+      }
+
+      mediaRecorder.start();
+      setTimeout(event => {
+        mediaRecorder.stop();
+      }, 500);
+
+    }, [500]);
+
 
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
@@ -128,37 +139,34 @@ const App = () => {
       console.log("ready");
     });
     buyer.on("feed", async function () {
-      let counter = 0;
-      await buyer.feed.update(function () {
-        console.log("length has increased", buyer.feed.length);
-        // counter = buyer.feed.length - 1
-      });
 
-      const replay = document.querySelector("#replay");
-      var ms = new MediaSource();
-      replay.src = window.URL.createObjectURL(ms);
-      ms.addEventListener(
-        "sourceopen",
-        () => {
-          let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-          console.log("source created");
-
-          setInterval(() => {
-            buyer.feed.get(counter, function (err, data) {
-              if (!source.updating)
-                source.appendBuffer(new Uint8Array(data));
-              counter += 1;
+        setInterval(() => {
+          buyer.feed.update(function () {
+            console.log(new Date());
+            buyer.feed.get(buyer.feed.length, function (err, data) {
+              console.log(data);
+              const replay = document.querySelector("#replay");
+              var ms = new MediaSource();
+              replay.src = window.URL.createObjectURL(ms);
+              ms.addEventListener(
+                  "sourceopen",
+                  async () => {
+                    let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+                    source.appendBuffer(data);
+                  },
+                  false
+              );
             });
-          }, [1000]);
-        },
-        false
-      );
+          })
+        }, [500]);
     });
 
     buyer.on("validate", function () {
       console.log("remote validated us");
     });
   };
+
+  const [url, setUrl] = useState(null);
 
   return (
     <div className="App">
@@ -170,6 +178,7 @@ const App = () => {
         style={{ width: 600, height: 600 }}
         autoPlay={true}
       />
+      {url && <Video url={url}/>}
     </div>
   );
 };
