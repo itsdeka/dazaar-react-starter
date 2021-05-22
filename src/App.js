@@ -43,15 +43,13 @@ const App = () => {
     seller.on('ready', () => seller.on('peer-add', onBuyerValid));
 
     const onBuyerValid = (stream) => {
-      console.log(stream.remotePublicKey);
+      // watch(stream.remotePublicKey);
     };
 
     const swarm = hyperswarm(seller, (e) => console.log(e), {
-      wsProxy: ["wss://hyperswarm.mauve.moe"],
+      wsProxy: ["wss://hc.virale.io/proxy"],
       webrtcBootstrap: [
-        "wss://geut-webrtc-signal-v3.herokuapp.com",
-        "wss://signal.dat-web.eu",
-        "wss://geut-webrtc-signal-v3.glitch.me",
+        "wss://hc.virale.io/signal"
       ],
       simplePeer: {
         // The configuration passed to the RTCPeerConnection constructor,for more details see
@@ -116,11 +114,9 @@ const App = () => {
     const buyer = m.buy(key, { sparse: true });
 
     const swarm = hyperswarm(buyer, (e) => console.log(e), {
-      wsProxy: ["wss://hyperswarm.mauve.moe"],
+      wsProxy: ["wss://hc.virale.io/proxy"],
       webrtcBootstrap: [
-        "wss://geut-webrtc-signal-v3.herokuapp.com",
-        "wss://signal.dat-web.eu",
-        "wss://geut-webrtc-signal-v3.glitch.me",
+        "wss://hc.virale.io/signal"
       ],
       simplePeer: {
         // The configuration passed to the RTCPeerConnection constructor,for more details see
