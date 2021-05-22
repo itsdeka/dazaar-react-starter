@@ -12,11 +12,6 @@ const topic = crypto
   .update("my-hyperswarm-topic")
   .digest();
 
-function bufferToHex(buffer) {
-    var s = '', h = '0123456789ABCDEF';
-    (new Uint8Array(buffer)).forEach((v) => { s += h[v >> 4] + h[v & 15]; });
-    return s;
-}
 
 const App = () => {
   const broadcast = (quality, media, cb) => {
@@ -76,8 +71,8 @@ const App = () => {
         var arrayBuffer = await event.data.arrayBuffer();
         var uint8View = new Uint8Array(arrayBuffer);
         feed.append(uint8View);
-        console.log(feed.length)
-        console.log(new Date().toISOString());
+        console.log('Seller ' + feed.length)
+        console.log('Seller ' + new Date().toISOString());
       }
 
       mediaRecorder.start();
@@ -86,7 +81,6 @@ const App = () => {
       }, 1000);
 
     }, [1000]);
-
 
     swarm.on("connection", (socket, info) => {
       console.log("new connection!", info);
@@ -156,27 +150,23 @@ const App = () => {
           snapshot: false,
           tail: true,
           live: true,
-          batch: 1,
-          timeout: 0,
-          start: buyer.feed.length
+          batch: 100
         });
 
-        console.log(stream.index);
-
         stream.on("data", chunk => {
-          console.log(stream);
-          const replay = document.querySelector("#replay");
-          var ms = new MediaSource();
-          replay.src = window.URL.createObjectURL(ms);
-          ms.addEventListener(
-              "sourceopen",
-              async () => {
-                let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
-                source.appendBuffer(chunk);
-                console.log(new Date().toISOString());
-              },
-              false
-          );
+            const replay = document.querySelector("#replay");
+            var ms = new MediaSource();
+            replay.src = window.URL.createObjectURL(ms);
+            ms.addEventListener(
+                "sourceopen",
+                async () => {
+                  let source = ms.addSourceBuffer("video/webm;codecs=vp8,opus");
+                  source.appendBuffer(chunk);
+                  console.log('Buyer ' + stream.index)
+                  console.log('Buyer ' + new Date().toISOString());
+                },
+                false
+            );
         });
       });
     });
@@ -188,12 +178,9 @@ const App = () => {
 
   const [url, setUrl] = useState(null);
 
-  useEffect(() => {
-    streamCamVideo();
-  }, []);
-
   return (
     <div className="App">
+      <button onClick={() => streamCamVideo()}>Stream</button>
       <button onClick={() => watch(null)}>Watch</button>
       <video id={"video"} style={{ width: 600, height: 600 }} muted={true} autoPlay={true} />
       <video
